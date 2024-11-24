@@ -1,0 +1,6 @@
+[submodule "lib/SBFL"]
+	path = lib/SBFL
+	url = https://github.com/Suresoft-GLaDOS/SBFL
+[submodule "lib/spiral"]
+	path = lib/spiral
+	url = https://github.com/casics/spiral
