@@ -4,11 +4,9 @@ on:
   pull_request:
     branches:
       - main
-      - linter
   push:
     branches:
       - main
-      - linter
 
 jobs:
   lint:
