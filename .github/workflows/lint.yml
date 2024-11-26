@@ -36,4 +36,4 @@ jobs:
 
       - name: Run pylint
         run: |
-          pylint --max-line-length=100 --disable=C0114,C0115,C0116  # Customize as needed
+          pylint . --max-line-length=100
