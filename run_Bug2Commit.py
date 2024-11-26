@@ -12,8 +12,10 @@ CORE_DATA_DIR = "./data/Defects4J/core"
 BIC_GT_DIR = "./data/Defects4J/BIC_dataset"
 BASELINE_DATA_DIR = "./data/Defects4J/baseline"
 
+
 def tokenize(text):
     return ronin.split(text)
+
 
 def vectorize_complex(bm25, features):
     vectors = []
@@ -24,19 +26,26 @@ def vectorize_complex(bm25, features):
         vector = []
         for v in bm25.vocab:
             freq = doc.get(v, 0)
-            vector.append(bm25.idf.get(v, 0) * (freq * (bm25.k1 + 1) /
-                (freq + bm25.k1 * (1 - bm25.b + bm25.b * doc_len / bm25.avgdl))))
+            vector.append(
+                bm25.idf.get(v, 0)
+                * (
+                    freq
+                    * (bm25.k1 + 1)
+                    / (freq + bm25.k1 * (1 - bm25.b + bm25.b * doc_len / bm25.avgdl))
+                )
+            )
         vectors.append(vector)
     assert len(vectors) == len(features)
     assert len(vectors[0]) == len(bm25.vocab)
     vectors = np.array(vectors)
     return vectors.mean(axis=0)
 
+
 def run_bug2commit(pid, vid):
     core_data_dir = os.path.join(CORE_DATA_DIR, f"{pid}-{vid}b")
     baseline_data_dir = os.path.join(BASELINE_DATA_DIR, f"{pid}-{vid}b")
     commit_dir = os.path.join(baseline_data_dir, "commits")
-    
+
     savepath = os.path.join(baseline_data_dir, "ranking_Bug2Commit.csv")
     if os.path.exists(savepath):
         print(f"{pid}-{vid}b: {savepath} already exists")
@@ -48,29 +57,38 @@ def run_bug2commit(pid, vid):
     for filename in os.listdir(commit_dir):
         with open(os.path.join(commit_dir, filename), "r") as f:
             data = json.load(f)
-            commit_message = data["log"].strip() # 1st commit feature
-            modified_files = "\n".join(list(set([  # 2nd commit feature
-                l[6:]
-                for l in data["commit"].strip().split("\n")
-                if l.startswith("+++ ")
-            ])))
+            commit_message = data["log"].strip()  # 1st commit feature
+            modified_files = "\n".join(
+                list(
+                    set(
+                        [  # 2nd commit feature
+                            l[6:]
+                            for l in data["commit"].strip().split("\n")
+                            if l.startswith("+++ ")
+                        ]
+                    )
+                )
+            )
             commit_features[filename] = [commit_message, modified_files]
 
     print(f"{pid}-{vid}b: Collecting query features...........................")
     # get query (bug report) features
     query_features = []
     with open(os.path.join(baseline_data_dir, "br_long.txt"), "r") as f:
-        query_features.append(f.read().strip()) # 1st bug report feature
+        query_features.append(f.read().strip())  # 1st bug report feature
     with open(os.path.join(baseline_data_dir, "br_short.txt"), "r") as f:
-        query_features.append(f.read().strip()) # 2nd bug report feature
+        query_features.append(f.read().strip())  # 2nd bug report feature
     with open(os.path.join(core_data_dir, "failing_tests"), "r") as f:
-        query_features.append(f.read().strip()) # 3rd bug report feature
+        query_features.append(f.read().strip())  # 3rd bug report feature
 
     corpus = sum(commit_features.values(), [])
     tokenized_corpus = [tokenize(doc) for doc in corpus]
     bm25 = BM25Okapi(tokenized_corpus)
-    bm25.vocab = list(set( # collect all words appearning in the corpus
-        sum([list(doc.keys()) for doc in bm25.doc_freqs], [])))
+    bm25.vocab = list(
+        set(  # collect all words appearning in the corpus
+            sum([list(doc.keys()) for doc in bm25.doc_freqs], [])
+        )
+    )
 
     print(f"{pid}-{vid}b: Vectorizing the features............................")
 
@@ -89,8 +107,7 @@ def run_bug2commit(pid, vid):
         similarity = 1 - cosine(commit_vectors[filename], query_vector)
         score_rows.append([commit, filename, similarity])
 
-    score_df = pd.DataFrame(data=score_rows,
-        columns=["commit", "filename", "score"])
+    score_df = pd.DataFrame(data=score_rows, columns=["commit", "filename", "score"])
     score_df["rank"] = score_df["score"].rank(ascending=False, method="max")
     score_df["rank"] = score_df["rank"].astype(int)
     score_df.sort_values(by="rank", inplace=True)
@@ -99,6 +116,7 @@ def run_bug2commit(pid, vid):
         score_df.to_csv(savepath, index=False, header=None)
         print(f"{pid}-{vid}b: Saved to {savepath}")
     return score_df
+
 
 if __name__ == "__main__":
     GT = load_BIC_GT(BIC_GT_DIR)
