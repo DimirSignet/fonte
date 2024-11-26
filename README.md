@@ -39,11 +39,7 @@ Included are:
     - **Install dependencies**:
         ```bash
         pip install --upgrade pip
-        python -m pip install numpy pandas scipy tqdm matplotlib seaborn rank-bm25 tabulate jupyter setuptools
-        python -m pip install lib/SBFL
-        # Alternative: python -m pip install git+https://github.com/Suresoft-GLaDOS/SBFL 
-        python -m pip install lib/spiral
-        # Alternative: python -m pip install git+https://github.com/casics/spiral
+        pip install -r requirements.txt
         ```
   - [Docker client](https://www.docker.com/products/docker-desktop) (only for the future extension)
 
